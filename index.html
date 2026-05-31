@@ -1109,10 +1109,9 @@
     <div class="guide-tabs">
       <button class="guide-tab active" data-tab="controls">조작법</button>
       <button class="guide-tab" data-tab="machines">기계 상세</button>
-      <button class="guide-tab" data-tab="chemistry">MOF 화학</button>
+      <button class="guide-tab" data-tab="chemistry">MOF</button>
       <button class="guide-tab" data-tab="nano">나노로봇</button>
-      <button class="guide-tab" data-tab="bioplastic">바이오</button>
-      <button class="guide-tab" data-tab="tips">전략 팁</button>
+      <button class="guide-tab" data-tab="bioplastic">바이오 플라스틱</button>
     </div>
     <div id="guide-content" style="overflow-y: auto; flex: 1; padding: 4px;">
       <!-- 동적 -->
@@ -1184,7 +1183,7 @@
       <button class="arrow-btn" id="processor-prev">◀</button>
       <div class="selector-content">
         <svg id="processor-icon" viewBox="0 0 80 80"></svg>
-        <span id="processor-label">솔보써멀 반응기</span>
+        <span id="processor-label">멀티클레이브</span>
       </div>
       <button class="arrow-btn" id="processor-next">▶</button>
     </div>
@@ -1292,7 +1291,7 @@
 
 <div class="modal-overlay" id="info-modal">
   <div class="modal-box">
-    <div class="modal-title" id="info-modal-title">솔보써멀 반응기 상태</div>
+    <div class="modal-title" id="info-modal-title">멀티클레이브 상태</div>
     <div id="info-modal-content" style="display: flex; flex-direction: column; gap: 12px;">
       <!-- 동적 콘텐츠 -->
     </div>
@@ -1725,11 +1724,25 @@
     const shopEl = document.getElementById('shop-money');
     if (shopEl) shopEl.textContent = money;
     updateInstallCostUI();
-    // inspect 모달이 열려있고 처리장치를 보고 있다면 자금 변화에 따른 버튼 갱신
+    // inspect 모달의 속도 업그레이드 버튼 - DOM 교체 없이 색상만 갱신
+    // (전체 renderInspectModal()을 호출하면 사용자 클릭이 DOM 교체로 무효화됨)
+    updateInspectAffordability();
+  }
+  
+  // inspect 모달 안의 업그레이드 버튼 색상만 자금 변화에 따라 갱신
+  function updateInspectAffordability() {
     const inspectModal = document.getElementById('inspect-modal');
-    if (inspectModal && inspectModal.classList.contains('show') && typeof renderInspectModal === 'function') {
-      renderInspectModal();
-    }
+    if (!inspectModal || !inspectModal.classList.contains('show')) return;
+    document.querySelectorAll('.speed-upgrade-btn').forEach(btn => {
+      const k = btn.dataset.key;
+      const c = grid[k];
+      if (!c) return;
+      const price = getSpeedUpgradePrice(c);
+      const affordable = money >= price;
+      btn.style.background = affordable ? 'linear-gradient(135deg, #FFB060, #FF8030)' : '#4a3a2a';
+      btn.style.color = affordable ? '#fff' : '#888';
+      btn.style.opacity = affordable ? '1' : '0.7';
+    });
   }
   
   // === 상점 모달 ===
@@ -1745,11 +1758,11 @@
       icon: `<svg viewBox="0 0 80 80"><rect x="10" y="10" width="60" height="60" fill="#8B6F47" rx="3"/><rect x="14" y="14" width="52" height="52" fill="#6B5437" rx="2"/><circle cx="40" cy="42" r="11" fill="#5BB0D0" stroke="#1F4A60" stroke-width="1.5"/><circle cx="36" cy="38" r="3.5" fill="#A8D8F0"/></svg>`,
       board: 'mof' },
     // MOF 처리장치
-    { unlockKey: 'processor_washer', section: '🧪 MOF 처리장치', name: '원심분리 세척기',
+    { unlockKey: 'processor_washer', section: '🧪 MOF 처리장치', name: '진공 필터 장치',
       desc: '미세척 MOF → 세척된 MOF (가치 2.4배)',
       icon: `<svg viewBox="0 0 80 80"><rect x="8" y="8" width="64" height="64" fill="#4A6A8C" rx="3"/><circle cx="40" cy="40" r="22" fill="#1A2530"/><circle cx="40" cy="40" r="18" fill="rgba(100, 180, 220, 0.5)"/><path d="M 40 22 A 18 18 0 0 1 58 40" stroke="#B0D8F0" stroke-width="2.5" fill="none"/><path d="M 40 58 A 18 18 0 0 1 22 40" stroke="#B0D8F0" stroke-width="2.5" fill="none"/><circle cx="40" cy="40" r="4" fill="#5A6A7A"/></svg>`,
       board: 'mof' },
-    { unlockKey: 'processor_activator', section: '🧪 MOF 처리장치', name: '진공 활성화로',
+    { unlockKey: 'processor_activator', section: '🧪 MOF 처리장치', name: '진공 건조 오븐',
       desc: '세척된 MOF → 활성화 MOF (가치 2.5배)',
       icon: `<svg viewBox="0 0 80 80"><rect x="8" y="8" width="64" height="64" fill="#5A3A7A" rx="3"/><rect x="18" y="18" width="44" height="44" fill="#1A0A2A"/><polygon points="40,28 52,40 40,52 28,40" fill="#FFE468" stroke="#7A5C0A" stroke-width="1.5"/><circle cx="40" cy="40" r="2" fill="#FFFFFF"/></svg>`,
       board: 'mof' },
@@ -2404,7 +2417,7 @@
   // 처리 장치 종류
   // outputMap: 입력 종류에 따라 다른 출력 (없으면 그냥 output 사용)
   const processorTypes = [
-    { id: 'solvothermal', label: '솔보써멀 반응기', board: 'mof',
+    { id: 'solvothermal', label: '멀티클레이브', board: 'mof',
       inputs: ['metal_salt', 'organic_linker'],
       inputIsCategory: true,
       output: 'raw_zif8',
@@ -2413,7 +2426,7 @@
         copper_chloride: 'raw_hkust'
       },
       processTime: 180 },
-    { id: 'washer', label: '원심분리 세척기', board: 'mof',
+    { id: 'washer', label: '진공 필터 장치', board: 'mof',
       inputs: ['raw_mof_any'],
       inputIsCategory: true,
       output: 'washed_zif8',
@@ -2422,7 +2435,7 @@
         hkust: 'washed_hkust'
       },
       processTime: 120 },
-    { id: 'activator', label: '진공 활성화로', board: 'mof',
+    { id: 'activator', label: '진공 건조 오븐', board: 'mof',
       inputs: ['washed_mof_any'],
       inputIsCategory: true,
       output: 'activated_zif8',
@@ -2693,7 +2706,7 @@
     ctx.closePath();
   }
   
-  function drawSolvothermal(cx, cy, size, dir, cell) {
+  function drawMulticlave(cx, cy, size, dir, cell) {
     const p = 1, x = cx + p, y = cy + p, s = size - p * 2;
     
     // 외부 압력 챔버 (스테인리스 느낌)
@@ -2799,10 +2812,10 @@
   function drawWasher(cx, cy, size, dir, cell) {
     const p = 1, x = cx + p, y = cy + p, s = size - p * 2;
     
-    // 외부 - 파란 톤 (세척기 느낌)
+    // 외부 - 파란 톤 (진공 필터 장치)
     ctx.fillStyle = '#4A6A8C';
     ctx.fillRect(x, y, s, s);
-    ctx.strokeStyle = '#2D4560';
+    ctx.strokeStyle = '#2A4060';
     ctx.lineWidth = 2;
     ctx.strokeRect(x, y, s, s);
     
@@ -2812,67 +2825,102 @@
       ctx.beginPath(); ctx.arc(bx, by, 1.8, 0, Math.PI * 2); ctx.fill();
     }
     
-    // 내부 챔버 (원형 - 원심분리 통)
-    const cx2 = x + s / 2, cy2 = y + s / 2;
-    const r = s * 0.32;
+    // 깔때기 (상단 역사다리꼴)
+    const fx = x + s * 0.22, fy = y + s * 0.18;
+    const fw = s * 0.56, fh = s * 0.28;
+    ctx.fillStyle = '#A8C8E8';
+    ctx.beginPath();
+    ctx.moveTo(fx, fy);
+    ctx.lineTo(fx + fw, fy);
+    ctx.lineTo(fx + fw * 0.75, fy + fh);
+    ctx.lineTo(fx + fw * 0.25, fy + fh);
+    ctx.closePath();
+    ctx.fill();
+    ctx.strokeStyle = '#2A4060'; ctx.lineWidth = 1.2; ctx.stroke();
     
+    // 필터층 (가로 줄)
+    const flx = fx + fw * 0.25, fly = fy + fh;
+    const flw = fw * 0.5, flh = s * 0.06;
+    ctx.fillStyle = '#E8E0C0';
+    ctx.fillRect(flx, fly, flw, flh);
+    ctx.strokeStyle = '#888'; ctx.lineWidth = 0.5;
+    for (let i = 1; i < 3; i++) {
+      ctx.beginPath();
+      ctx.moveTo(flx + 1, fly + (flh * i / 3));
+      ctx.lineTo(flx + flw - 1, fly + (flh * i / 3));
+      ctx.stroke();
+    }
+    ctx.strokeStyle = '#3A4040'; ctx.lineWidth = 0.8;
+    ctx.strokeRect(flx, fly, flw, flh);
+    
+    // 하부 챔버 (필터 통)
+    const ccx = x + s * 0.25, ccy = fly + flh, ccw = s * 0.5, cch = s * 0.32;
     ctx.fillStyle = '#1A2530';
-    ctx.beginPath(); ctx.arc(cx2, cy2, r, 0, Math.PI * 2); ctx.fill();
-    ctx.strokeStyle = '#0A1520'; ctx.lineWidth = 1.5; ctx.stroke();
+    ctx.fillRect(ccx, ccy, ccw, cch);
+    ctx.strokeStyle = '#2A4060'; ctx.lineWidth = 1; ctx.strokeRect(ccx, ccy, ccw, cch);
+    
+    // 진공 펌프 (우측 박스)
+    const pmpx = x + s * 0.78, pmpy = y + s * 0.55;
+    ctx.fillStyle = '#3A4040';
+    ctx.fillRect(pmpx, pmpy, s * 0.16, s * 0.18);
+    ctx.strokeStyle = '#1A1A1A'; ctx.strokeRect(pmpx, pmpy, s * 0.16, s * 0.18);
+    // 호스
+    ctx.strokeStyle = '#666'; ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(ccx + ccw, pmpy + s * 0.07);
+    ctx.lineTo(pmpx, pmpy + s * 0.07);
+    ctx.stroke();
     
     if (cell && cell.processing) {
-      // 회전 애니메이션 (원심분리 통)
-      const angle = tickCounter * 0.4;
+      // 처리 중 - 깔때기에 슬러리 + 떨어지는 액체
+      const progress = Math.min(1, (tickCounter - cell.processStartTick) / cell.processTime);
       
-      // 회전하는 액체 + 결정
-      ctx.save();
-      ctx.translate(cx2, cy2);
-      ctx.rotate(angle);
-      
-      // 청록 액체 (DMF 용매)
-      ctx.fillStyle = 'rgba(100, 180, 220, 0.7)';
-      ctx.beginPath(); ctx.arc(0, 0, r * 0.85, 0, Math.PI * 2); ctx.fill();
-      
-      // 회전 줄무늬 (운동 표현)
-      ctx.strokeStyle = 'rgba(180, 220, 240, 0.5)';
-      ctx.lineWidth = 1.5;
-      for (let i = 0; i < 4; i++) {
-        const ang = (Math.PI / 2) * i;
-        ctx.beginPath();
-        ctx.arc(0, 0, r * 0.6, ang, ang + Math.PI / 4);
-        ctx.stroke();
-      }
-      
-      // 중앙 결정 (회전 중)
-      ctx.fillStyle = '#B080D0';
+      // 깔때기 안에 슬러리
+      ctx.fillStyle = 'rgba(184, 144, 96, 0.7)';
       ctx.beginPath();
-      ctx.moveTo(0, -r * 0.3); ctx.lineTo(r * 0.3, 0);
-      ctx.lineTo(0, r * 0.3); ctx.lineTo(-r * 0.3, 0);
-      ctx.closePath(); ctx.fill();
-      ctx.strokeStyle = '#4A2A6A'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.moveTo(fx + 1, fy + 1);
+      ctx.lineTo(fx + fw - 1, fy + 1);
+      ctx.lineTo(fx + fw * 0.73, fy + fh - 1);
+      ctx.lineTo(fx + fw * 0.27, fy + fh - 1);
+      ctx.closePath();
+      ctx.fill();
       
-      ctx.restore();
+      // 떨어지는 정제 액 (애니메이션)
+      const drip = (tickCounter * 0.3) % (cch - 4);
+      ctx.fillStyle = 'rgba(168, 200, 232, 0.85)';
+      ctx.beginPath(); ctx.arc(x + s/2, ccy + 2 + drip, 1.5, 0, Math.PI * 2); ctx.fill();
+      
+      // 펌프 회전 표시 (작은 원 깜빡)
+      const blink = Math.floor(tickCounter / 6) % 2 === 0;
+      ctx.fillStyle = blink ? '#5BB0F0' : '#2A6090';
+      ctx.beginPath(); ctx.arc(pmpx + s * 0.08, pmpy + s * 0.09, 2.2, 0, Math.PI * 2); ctx.fill();
+      
+      // 정제된 결정 (하부)
+      ctx.fillStyle = '#A8C8E8';
+      ctx.beginPath(); ctx.arc(ccx + ccw * 0.3, ccy + cch * 0.7, 1.4, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(ccx + ccw * 0.6, ccy + cch * 0.75, 1.4, 0, Math.PI * 2); ctx.fill();
       
       // 진행 바
-      const progress = Math.min(1, (tickCounter - cell.processStartTick) / cell.processTime);
       ctx.fillStyle = '#1A1A1A'; ctx.fillRect(x + s * 0.15, y + s - 5, s * 0.7, 3);
       ctx.fillStyle = '#5BB0F0'; ctx.fillRect(x + s * 0.15, y + s - 5, s * 0.7 * progress, 3);
     } else {
-      // 대기 상태: 정지된 통
-      ctx.fillStyle = 'rgba(100, 180, 220, 0.3)';
-      ctx.beginPath(); ctx.arc(cx2, cy2, r * 0.85, 0, Math.PI * 2); ctx.fill();
-      
-      // 중앙 축
-      ctx.fillStyle = '#5A6A7A';
-      ctx.beginPath(); ctx.arc(cx2, cy2, r * 0.15, 0, Math.PI * 2); ctx.fill();
-      ctx.strokeStyle = '#2A3540'; ctx.lineWidth = 1; ctx.stroke();
+      // 대기 상태 - 게이지만 표시
+      ctx.fillStyle = '#1A1A20';
+      ctx.beginPath(); ctx.arc(x + s * 0.13, y + s * 0.52, 4, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#fff';
+      ctx.beginPath(); ctx.arc(x + s * 0.13, y + s * 0.52, 3, 0, Math.PI * 2); ctx.fill();
+      ctx.strokeStyle = '#5BB0F0'; ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(x + s * 0.13, y + s * 0.52);
+      ctx.lineTo(x + s * 0.11, y + s * 0.50);
+      ctx.stroke();
       
       // 입력 버퍼 표시
       if (cell && cell.buffer) {
         const has = (cell.buffer.raw_mof_any || 0) > 0;
-        const type = itemTypes.raw_zif8;  // 대표 색상
+        const type = itemTypes.raw_zif8;
         ctx.fillStyle = has ? type.color : '#333';
-        ctx.beginPath(); ctx.arc(x + s * 0.5, y + s * 0.2, 3, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(x + s * 0.5, y + s * 0.08, 2.5, 0, Math.PI * 2); ctx.fill();
         ctx.strokeStyle = has ? type.border : '#555'; ctx.lineWidth = 1; ctx.stroke();
       }
     }
@@ -2888,7 +2936,7 @@
       drawArrow(ax, ay, az, dir, '#FFD700', '#8B6914');
     }
     
-    // 작동 LED (파란색 / 출력 대기 시 노랑 깜빡임)
+    // 작동 LED
     let lc = '#102030';
     let glowColor = '#5BB0F0';
     if (cell && cell.processing) {
@@ -4049,7 +4097,7 @@
           else if (subType === 'activator') drawActivator(cx, cy, size, dir, null);
           else if (nanoProcessorOpts[subType]) drawNanoProcessor(cx, cy, size, dir, null, nanoProcessorOpts[subType]);
           else if (bioProcessorOpts[subType]) drawBioProcessor(cx, cy, size, dir, null, bioProcessorOpts[subType]);
-          else drawSolvothermal(cx, cy, size, dir, null);
+          else drawMulticlave(cx, cy, size, dir, null);
         }
         ctx.globalAlpha = 1;
       } else {
@@ -4177,7 +4225,7 @@
       else if (cell.type === 'spawner') drawSpawner(cx, cy, CELL_SIZE, cell.dir, cell.itemType);
       else if (cell.type === 'collector') drawCollector(cx, cy, CELL_SIZE);
       else if (cell.type === 'processor' && cell.subType === 'solvothermal') {
-        drawSolvothermal(cx, cy, CELL_SIZE, cell.dir, cell);
+        drawMulticlave(cx, cy, CELL_SIZE, cell.dir, cell);
       }
       else if (cell.type === 'processor' && cell.subType === 'washer') {
         drawWasher(cx, cy, CELL_SIZE, cell.dir, cell);
@@ -4588,7 +4636,7 @@
           // 출력 종류 결정 (입력에 따라)
           let chosenOutput = cell.output;  // 기본
           
-          // 솔보써멀: 사용된 금속염 ID 추적 (lastReceivedMetal)
+          // 멀티클레이브: 사용된 금속염 ID 추적 (lastReceivedMetal)
           if (cell.outputByMetal && cell.lastReceivedMetal) {
             chosenOutput = cell.outputByMetal[cell.lastReceivedMetal] || cell.output;
           }
@@ -4679,7 +4727,7 @@
           if (!cell.buffer) cell.buffer = {};
           cell.buffer[acceptedSlot] = (cell.buffer[acceptedSlot] || 0) + 1;
           
-          // 솔보써멀: 사용된 금속염 ID 기억
+          // 멀티클레이브: 사용된 금속염 ID 기억
           if (itemCat === 'metal_salt') {
             cell.lastReceivedMetal = item.type;
           }
@@ -5651,33 +5699,66 @@
     document.getElementById('processor-label').textContent = type.label;
     let iconSvg;
     if (type.id === 'solvothermal') {
+      // 멀티클레이브 - 밀폐 고압 반응기 (압력 챔버)
       iconSvg = `
-        <rect x="8" y="8" width="64" height="64" fill="#7A7C82" rx="3" stroke="#3A3C42" stroke-width="2"/>
-        <circle cx="13" cy="13" r="1.8" fill="#4A4C52"/>
-        <circle cx="67" cy="13" r="1.8" fill="#4A4C52"/>
-        <circle cx="13" cy="67" r="1.8" fill="#4A4C52"/>
-        <circle cx="67" cy="67" r="1.8" fill="#4A4C52"/>
-        <rect x="18" y="18" width="44" height="44" fill="#1A1810"/>
-        <ellipse cx="40" cy="48" rx="14" ry="4" fill="#E85820"/>
-        <rect x="26" y="36" width="28" height="14" fill="#E85820"/>
-        <circle cx="32" cy="40" r="2" fill="#FFCC80"/>
-        <circle cx="44" cy="38" r="1.5" fill="#FFCC80"/>
-        <circle cx="48" cy="44" r="2" fill="#FFCC80"/>
+        <rect x="8" y="8" width="64" height="64" fill="#5A6068" rx="3" stroke="#2A3038" stroke-width="2"/>
+        <!-- 외부 케이싱 -->
+        <rect x="14" y="20" width="52" height="48" fill="#7A8088" stroke="#3A4048" stroke-width="1"/>
+        <!-- 상단 압력 뚜껑 -->
+        <rect x="20" y="14" width="40" height="12" fill="#9AA0A8" stroke="#3A4048" stroke-width="1" rx="2"/>
+        <!-- 압력 볼트 -->
+        <circle cx="22" cy="20" r="1.8" fill="#3A4048"/>
+        <circle cx="32" cy="20" r="1.8" fill="#3A4048"/>
+        <circle cx="48" cy="20" r="1.8" fill="#3A4048"/>
+        <circle cx="58" cy="20" r="1.8" fill="#3A4048"/>
+        <!-- 압력 게이지 (좌측) -->
+        <circle cx="22" cy="36" r="6" fill="#1A1A20" stroke="#3A4048" stroke-width="1.5"/>
+        <circle cx="22" cy="36" r="4.5" fill="#fff"/>
+        <line x1="22" y1="36" x2="25" y2="33" stroke="#E85820" stroke-width="1.5"/>
+        <circle cx="22" cy="36" r="0.8" fill="#3A4048"/>
+        <!-- 반응 챔버 (검은 창) -->
+        <rect x="32" y="32" width="28" height="28" fill="#1A1810" stroke="#3A4048" stroke-width="0.8"/>
+        <!-- 합성 중인 MOF 결정 (작은 점들) -->
+        <circle cx="38" cy="40" r="1.5" fill="#A8C8F0"/>
+        <circle cx="46" cy="46" r="1.5" fill="#A8C8F0"/>
+        <circle cx="54" cy="42" r="1.5" fill="#A8C8F0"/>
+        <circle cx="42" cy="52" r="1.5" fill="#A8C8F0"/>
+        <circle cx="50" cy="54" r="1.5" fill="#A8C8F0"/>
+        <!-- 라벨 -->
+        <text x="40" y="76" fill="#9AA0A8" font-size="5" font-family="monospace" font-weight="bold" text-anchor="middle">MULTICLAVE</text>
+        <!-- LED + 화살표 -->
         <circle cx="62" cy="14" r="3" fill="#FF3030"/>
         <polygon points="62,68 70,72 62,76" fill="#FFD700" stroke="#8B6914"/>
       `;
     } else if (type.id === 'washer') {
+      // 진공 필터 장치 - 깔때기 + 필터 + 진공 펌프
       iconSvg = `
-        <rect x="8" y="8" width="64" height="64" fill="#4A6A8C" rx="3" stroke="#2D4560" stroke-width="2"/>
-        <circle cx="13" cy="13" r="1.8" fill="#2A3540"/>
-        <circle cx="67" cy="13" r="1.8" fill="#2A3540"/>
-        <circle cx="13" cy="67" r="1.8" fill="#2A3540"/>
-        <circle cx="67" cy="67" r="1.8" fill="#2A3540"/>
-        <circle cx="40" cy="40" r="22" fill="#1A2530" stroke="#0A1520"/>
-        <circle cx="40" cy="40" r="18" fill="rgba(100, 180, 220, 0.5)"/>
-        <path d="M 40 22 A 18 18 0 0 1 58 40" stroke="#B0D8F0" stroke-width="2.5" fill="none"/>
-        <path d="M 40 58 A 18 18 0 0 1 22 40" stroke="#B0D8F0" stroke-width="2.5" fill="none"/>
-        <circle cx="40" cy="40" r="4" fill="#5A6A7A"/>
+        <rect x="8" y="8" width="64" height="64" fill="#4A6A8C" rx="3" stroke="#2A4060" stroke-width="2"/>
+        <!-- 상단 깔때기 (역사다리꼴) -->
+        <polygon points="20,16 60,16 50,38 30,38" fill="#A8C8E8" stroke="#2A4060" stroke-width="1.5"/>
+        <!-- 깔때기 안의 슬러리 -->
+        <polygon points="22,18 58,18 49,34 31,34" fill="rgba(184, 144, 96, 0.6)"/>
+        <!-- 필터층 (가로 줄무늬) -->
+        <rect x="30" y="38" width="20" height="6" fill="#E8E0C0" stroke="#3A4040" stroke-width="0.8"/>
+        <line x1="32" y1="40" x2="48" y2="40" stroke="#888" stroke-width="0.4"/>
+        <line x1="32" y1="42" x2="48" y2="42" stroke="#888" stroke-width="0.4"/>
+        <!-- 필터 하부 챔버 -->
+        <rect x="26" y="44" width="28" height="14" fill="#1A2530" stroke="#2A4060" stroke-width="1"/>
+        <!-- 진공 펌프 (우측 박스 + 호스) -->
+        <rect x="58" y="46" width="10" height="10" fill="#3A4040" stroke="#1A1A1A"/>
+        <circle cx="63" cy="51" r="2.5" fill="#5BB0F0"/>
+        <path d="M 54 50 L 58 50" stroke="#666" stroke-width="2.5" fill="none"/>
+        <!-- 진공 게이지 (좌측) -->
+        <circle cx="14" cy="50" r="5" fill="#1A1A20" stroke="#666"/>
+        <circle cx="14" cy="50" r="3.5" fill="#fff"/>
+        <line x1="14" y1="50" x2="11" y2="48" stroke="#5BB0F0" stroke-width="1"/>
+        <!-- 출구 (하단) -->
+        <rect x="36" y="58" width="8" height="6" fill="#666"/>
+        <!-- 떨어지는 정제 결정 -->
+        <circle cx="40" cy="68" r="1.5" fill="#A8C8E8"/>
+        <!-- 라벨 -->
+        <text x="40" y="76" fill="#A8C8E8" font-size="5" font-family="monospace" font-weight="bold" text-anchor="middle">FILTER</text>
+        <!-- LED + 화살표 -->
         <circle cx="62" cy="14" r="3" fill="#5BB0F0"/>
         <polygon points="62,68 70,72 62,76" fill="#FFD700" stroke="#8B6914"/>
       `;
@@ -5968,20 +6049,37 @@
         <polygon points="62,68 70,72 62,76" fill="#FFD700" stroke="#8B6914"/>
       `;
     } else {
-      // activator (진공 활성화로)
+      // activator (진공 건조 오븐) - 오븐 박스 + 진공 게이지 + 열선
       iconSvg = `
         <rect x="8" y="8" width="64" height="64" fill="#5A3A7A" rx="3" stroke="#2A1A4A" stroke-width="2"/>
-        <circle cx="13" cy="13" r="1.8" fill="#3A2A5A"/>
-        <circle cx="67" cy="13" r="1.8" fill="#3A2A5A"/>
-        <circle cx="13" cy="67" r="1.8" fill="#3A2A5A"/>
-        <circle cx="67" cy="67" r="1.8" fill="#3A2A5A"/>
-        <rect x="18" y="18" width="44" height="44" fill="#1A0A2A"/>
-        <line x1="22" y1="22" x2="58" y2="22" stroke="rgba(180,130,220,0.3)" stroke-width="1"/>
-        <line x1="22" y1="30" x2="58" y2="30" stroke="rgba(180,130,220,0.3)" stroke-width="1"/>
-        <line x1="22" y1="50" x2="58" y2="50" stroke="rgba(180,130,220,0.3)" stroke-width="1"/>
-        <line x1="22" y1="58" x2="58" y2="58" stroke="rgba(180,130,220,0.3)" stroke-width="1"/>
-        <polygon points="40,28 52,40 40,52 28,40" fill="#FFE468" stroke="#7A5C0A" stroke-width="1.5"/>
-        <circle cx="40" cy="40" r="2" fill="#FFFFFF"/>
+        <!-- 오븐 외부 케이싱 -->
+        <rect x="14" y="20" width="52" height="48" fill="#7A5A9A" stroke="#3A1A5A" stroke-width="1"/>
+        <!-- 오븐 도어 (검은 창) -->
+        <rect x="20" y="26" width="40" height="34" fill="#1A0A2A" stroke="#3A1A5A" stroke-width="1"/>
+        <!-- 도어 안 내부 -->
+        <rect x="22" y="28" width="36" height="30" fill="#2A0A3A"/>
+        <!-- 진공 표시 (점선) -->
+        <line x1="24" y1="34" x2="56" y2="34" stroke="rgba(255,228,104,0.2)" stroke-width="0.5" stroke-dasharray="2,2"/>
+        <line x1="24" y1="42" x2="56" y2="42" stroke="rgba(255,228,104,0.2)" stroke-width="0.5" stroke-dasharray="2,2"/>
+        <line x1="24" y1="50" x2="56" y2="50" stroke="rgba(255,228,104,0.2)" stroke-width="0.5" stroke-dasharray="2,2"/>
+        <!-- 열선 (하단 빨강) -->
+        <line x1="24" y1="56" x2="56" y2="56" stroke="#FF6030" stroke-width="2"/>
+        <!-- 건조 중인 MOF 결정 -->
+        <rect x="34" y="46" width="4" height="4" fill="#FFE468"/>
+        <rect x="42" y="48" width="4" height="4" fill="#FFE468"/>
+        <rect x="38" y="42" width="3" height="3" fill="#FFE468"/>
+        <!-- 도어 손잡이 -->
+        <rect x="58" y="40" width="3" height="8" fill="#9A7ABA"/>
+        <!-- 진공 게이지 (상단 좌측) -->
+        <circle cx="22" cy="14" r="3.5" fill="#1A0A2A" stroke="#FFE468" stroke-width="1"/>
+        <line x1="22" y1="14" x2="24" y2="12" stroke="#FFE468" stroke-width="0.8"/>
+        <!-- 컨트롤 패널 (우측 상단) -->
+        <rect x="50" y="11" width="10" height="6" fill="#3A1A5A" stroke="#7A5A9A"/>
+        <rect x="51" y="13" width="2" height="2" fill="#FFE468"/>
+        <rect x="55" y="13" width="2" height="2" fill="#FFE468"/>
+        <!-- 라벨 -->
+        <text x="40" y="76" fill="#FFE468" font-size="5" font-family="monospace" font-weight="bold" text-anchor="middle">VAC OVEN</text>
+        <!-- LED + 화살표 -->
         <circle cx="62" cy="14" r="3" fill="#FFE468"/>
         <polygon points="62,68 70,72 62,76" fill="#FFD700" stroke="#8B6914"/>
       `;
@@ -6086,7 +6184,7 @@
       formula: 'H₂BDC (테레프탈산)',
       description: 'MOF 구조의 가장자리(linker)를 형성하는 유기 분자를 공급합니다. 벤젠 고리에 카르복실기가 달린 형태입니다.',
       io: { inputs: ['—'], outputs: ['🟢 유기 리간드'] },
-      tip: '금속염과 함께 솔보써멀 반응기로 보내야 MOF가 합성됩니다.'
+      tip: '금속염과 함께 멀티클레이브로 보내야 MOF가 합성됩니다.'
     },
     spawner_carbon: {
       name: '탄소 결정 공급기',
@@ -6121,26 +6219,26 @@
       tip: '동력원은 마지막 2단계에서 1개씩 총 2번 소비됩니다 — 슬롯 확장이 효율적입니다. 판매가 30원.'
     },
     processor_solvothermal: {
-      name: '솔보써멀 반응기',
-      category: '합성',
-      formula: 'M + L → MOF (DMF, 120°C, 24h)',
-      description: '금속염과 유기 리간드를 DMF 용매에서 반응시켜 결정성 MOF를 합성합니다. 사용된 금속염에 따라 다른 MOF가 생성됩니다.',
+      name: '멀티클레이브',
+      category: 'MOF 합성',
+      formula: 'M²⁺ + L → MOF (밀폐 고압 반응)',
+      description: '단일 공정으로 다수의 화합물을 합성할 수 있는 반응기. 금속 이온과 유기 리간드가 배위결합을 형성하여 다공성 MOF 결정 구조가 만들어집니다.',
       io: { inputs: ['금속염', '유기 리간드'], outputs: ['미세척 ZIF-8 / HKUST-1'] },
       tip: '질산아연 → ZIF-8 (5원), 염화구리 → HKUST-1 (8원). 두 금속염을 다 보내면 마지막에 받은 종류에 따라 결정됩니다.'
     },
     processor_washer: {
-      name: '원심분리 세척기',
-      category: '정제',
-      formula: 'Centrifugal Wash (DMF×3)',
-      description: '결정 표면과 포어 안의 불순물을 신선한 DMF로 씻어냅니다. MOF 종류는 그대로 유지됩니다.',
+      name: '진공 필터 장치',
+      category: 'MOF 분리·세척',
+      formula: 'Vacuum Filtration + 용매 세척',
+      description: '합성 직후 생긴 MOF 결정을 반응 용매로부터 분리하고, 잔류 불순물을 신선한 용매로 씻어냅니다. 진공 흡입으로 효율 ↑',
       io: { inputs: ['미세척 MOF'], outputs: ['세척된 MOF'] },
       tip: 'ZIF-8 → 12원, HKUST-1 → 20원으로 가치가 올라갑니다.'
     },
     processor_activator: {
-      name: '진공 활성화로',
-      category: '활성화',
-      formula: 'Vacuum + 200°C, 12h',
-      description: '진공·가열로 포어의 용매를 제거해 최종 활성화 MOF를 만듭니다.',
+      name: '진공 건조 오븐',
+      category: 'MOF 활성화',
+      formula: 'Vacuum + Mild Heat',
+      description: '잔류 용매의 끓는점을 낮춰 MOF의 기공 구조를 보존한 채 건조합니다. 모세관 붕괴를 방지해 다공성 구조의 안정성이 크게 증가합니다.',
       io: { inputs: ['세척된 MOF'], outputs: ['활성화 MOF'] },
       tip: 'ZIF-8 → 30원, HKUST-1 → 60원! 가장 비싼 단계입니다.'
     },
@@ -8016,9 +8114,9 @@
     machines: getMachinesGuideHtml(),
     chemistry: `
       <div class="guide-section">
-        <h3>⚛️ MOF 합성의 원리</h3>
-        <p>MOF는 <b>금속 노드</b>(metal node)와 <b>유기 리간드</b>(organic linker)가 자기조립(self-assembly)으로 결합해 만들어지는 결정성 다공성 재료입니다.</p>
-        <p>마치 레고처럼 금속이 모서리, 리간드가 가장자리 역할을 해서 정교한 3차원 격자 구조를 만듭니다.</p>
+        <h3>⚛️ MOF의 특성</h3>
+        <p><b>MOF</b>(Metal-Organic Framework)란 <b>금속 클러스터(SBU)</b>가 유기 리간드와 <b>배위결합</b>을 형성하여 만들어지는 배위 고분자의 한 종류로, <b>다공성 확장 구조</b>를 가진다.</p>
+        <p>주요 용도: <b>가스 정화 및 분리, 수질 정화, 촉매</b>의 역할을 한다.</p>
       </div>
       <div class="guide-section">
         <h3>💎 ZIF-8 (질산아연 기반)</h3>
@@ -8039,22 +8137,20 @@
         </ul>
       </div>
       <div class="guide-section">
-        <h3>🔬 공정 4단계</h3>
-        <h4>1. 솔보써멀 합성 (Solvothermal Synthesis)</h4>
-        <p>DMF 같은 유기 용매에서 금속염 + 리간드를 120°C 고온·고압으로 12~72시간 가열 → 결정성 MOF 형성</p>
-        <h4>2. 원심분리 세척 (Centrifugal Washing)</h4>
-        <p>결정 표면과 포어 안의 미반응 원료·용매를 신선한 DMF로 3회 정도 씻어냄 → 순도 향상</p>
-        <h4>3. 진공 활성화 (Vacuum Activation)</h4>
-        <p>진공 챔버에서 200°C로 12시간 가열 → 포어 안 솔벤트 제거 → <b>다공성 발현</b>!</p>
-        <h4>4. 적용 / 판매</h4>
-        <p>활성화된 MOF는 비로소 가스 흡착, 분리, 촉매 등의 기능을 발휘 → 시장 가치 최대화</p>
+        <h3>🔬 공정 3단계</h3>
+        <h4>1. 멀티클레이브 (Multiclave)</h4>
+        <p>단일 공정으로 다수의 화합물을 합성할 수 있는 반응기입니다. 금속 이온과 유기 리간드가 배위결합을 형성하여 다공성 MOF가 만들어집니다.</p>
+        <h4>2. 진공 필터 (Vacuum Filter)</h4>
+        <p>합성 직후 생긴 MOF 결정을 반응 용매로부터 분리하고 세척합니다. 진공 흡입으로 효율적인 정제가 가능합니다.</p>
+        <h4>3. 진공 건조 (Vacuum Drying)</h4>
+        <p>잔류 용매의 끓는점을 낮춤으로써 MOF의 기공 구조를 보존하며 건조합니다. 모세관 붕괴를 방지해 다공성 구조의 <b>안정성이 증가</b>합니다.</p>
       </div>
     `,
     nano: `
       <div class="guide-section">
-        <h3>🤖 나노로봇 공정의 원리</h3>
+        <h3>🤖 나노로봇의 특성</h3>
         <p>나노로봇은 <b>탄소 골격</b>(carbon frame)과 <b>바이오 코어</b>(biocore)가 자기조립으로 결합한 <b>나노 프레임</b>을 기반으로, AI 칩과 동력원을 단계적으로 통합하는 4단계 공정으로 만들어집니다.</p>
-        <p>마치 레고처럼 프레임이 몸체, 칩이 두뇌, 동력원이 심장 역할을 하여 첨단 자율 나노로봇이 완성됩니다.</p>
+        <p>주요 용도: <b>의료 진단, 환경 모니터링, 약물 전달</b> 등 미시 세계에서 자율적으로 작동하는 첨단 디바이스 역할을 한다.</p>
       </div>
       <div class="guide-section">
         <h3>💎 기본 나노봇 (탄소 + 바이오 + AI)</h3>
@@ -8088,9 +8184,10 @@
     `,
     bioplastic: `
       <div class="guide-section">
-        <h3>🌱 PHA 바이오 플라스틱 공정의 원리</h3>
-        <p>식물에서 추출한 <b>전분</b>(starch)을 박테리아의 먹이로 사용해 <b>PHA</b>(폴리하이드록시알카노에이트)를 생산하는 친환경 공정입니다. PLA가 화학적 중합으로 만들어지는 것과 달리, PHA는 <b>박테리아가 세포 내에 직접 합성·축적</b>하는 진정한 생물학적 플라스틱입니다.</p>
-        <p>대표적인 박테리아는 <b>Cupriavidus necator</b>로, 영양이 풍부한 환경에서는 빠르게 증식하다가 질소·인이 제한되면 PHA를 세포 무게의 80%까지 축적해 비상식량으로 저장합니다.</p>
+        <h3>🌱 PHA 바이오 플라스틱의 특성</h3>
+        <p><b>PHA</b>(폴리하이드록시알카노에이트)는 박테리아가 세포 내에 직접 합성·축적하는 진정한 생물학적 플라스틱입니다. PLA가 화학적 중합으로 만들어지는 것과 달리, PHA는 미생물 자체가 만들어내는 자연 유래 고분자입니다.</p>
+        <p>대표 박테리아는 <b>Cupriavidus necator</b>로, 영양이 풍부한 환경에서는 빠르게 증식하다가 질소·인이 제한되면 PHA를 세포 무게의 80%까지 축적해 비상식량으로 저장합니다.</p>
+        <p>주요 용도: <b>친환경 용기, 의료용 봉합사·임플란트, 농업용 필름, 해양 분해성 소재</b> 등 미세 플라스틱 문제 해결의 핵심 소재.</p>
       </div>
       <div class="guide-section">
         <h3>💎 PHA vs PLA 차이점</h3>
@@ -8120,88 +8217,8 @@
         <h4>5. 성형 (Molding)</h4>
         <p>정제 PHA를 금형 프레스로 압착·성형해 <b>완성품</b> 제작 → <b>1,500원</b> (병목 단계, 8.7초)</p>
       </div>
-      <div class="guide-section">
-        <h3>💡 운영 팁</h3>
-        <ul>
-          <li>발효조는 입력 3개 필요 (포도당 + 박테리아 + 영양 배지) — 모두 도달해야 시작</li>
-          <li>박테리아·영양 배지는 한 사이클 1개씩 소비됨, 슬롯 확장 필요</li>
-          <li>성형기가 가장 느림(8.7초) → 여러 대 병렬 운영 권장</li>
-          <li>추출기는 단일 입력이라 비교적 단순한 라인 설계 가능</li>
-        </ul>
-      </div>
     `,
-    tips: `
-      <div class="guide-section">
-        <h3>💸 초반 자금 운용</h3>
-        <ul>
-          <li>시작 자금 50원, 첫 라인 1세트로 5원/사이클 시작</li>
-          <li>먼저 <b>세척기(200원)</b>를 구매해서 가치 2.4배 (5→12원)</li>
-          <li>다음 <b>활성화로(500원)</b>로 다시 2.5배 (12→30원)</li>
-        </ul>
-      </div>
-      <div class="guide-section">
-        <h3>🏭 라인 설계 팁</h3>
-        <ul>
-          <li>기구끼리는 <b>컨베이어 1개 이상</b>으로 떨어뜨려야 함</li>
-          <li>병목 = <b>활성화로</b> (4초/개로 가장 느림) → 여러 개 두기 권장</li>
-          <li>처리 시간 비율: 합성 3초 : 세척 2초 : 활성화 4초</li>
-          <li>황금 비율: 활성화로 2개당 세척기 1개, 반응기 2~3개</li>
-        </ul>
-      </div>
-      <div class="guide-section">
-        <h3>🔵 HKUST-1 vs ZIF-8</h3>
-        <ul>
-          <li>ZIF-8: 활성화 시 30원 — 안정적, 진입장벽 낮음</li>
-          <li>HKUST-1: 활성화 시 <b>60원!</b> — 염화구리(100원) 해금 필요</li>
-          <li>HKUST-1 라인은 초기 투자 크지만 ROI 우수</li>
-        </ul>
-      </div>
-      <div class="guide-section">
-        <h3>📈 슬롯 확장 전략</h3>
-        <ul>
-          <li>한 종류 공급기를 늘리는 것보다 <b>새 라인 추가</b>가 보통 효율적</li>
-          <li>다만 활성화로가 병목이면 공급기를 늘려도 의미 X</li>
-          <li>먼저 라인 흐름 안정화 → 슬롯 확장 순서</li>
-        </ul>
-      </div>
-      <div class="guide-section">
-        <h3>🗺 구역 확장</h3>
-        <ul>
-          <li>거리가 멀수록 구역 가격 ↑ (시작 영역 인접: 60원, 멀어질수록 +30원씩)</li>
-          <li>인접 구역부터 사는 게 경제적</li>
-          <li>처음에는 2~3 구역만으로도 충분 (잠긴 구역 사기보다 자동화 효율 ↑가 더 중요)</li>
-        </ul>
-      </div>
-      
-      <div class="guide-section">
-        <h3>🤖 나노로봇 진입 타이밍</h3>
-        <ul>
-          <li>나노 보드 해금 = 1500원 → 활성화 HKUST-1 25개 분량</li>
-          <li>너무 빨리 진입하면 나노 도구 해금 자금이 부족 (총 2300원 더 필요)</li>
-          <li><b>권장 진입 자산</b>: 4000원+ 보유 후 진입</li>
-          <li>나노 진입 후에는 <b>MOF 라인 그대로 유지</b>해서 자금 흐름 끊지 말기</li>
-        </ul>
-      </div>
-      
-      <div class="guide-section">
-        <h3>💎 나노 라인 최적화</h3>
-        <ul>
-          <li>완성형 나노로봇 1개 = 81원 원가 → 500원 판매 (<b>419원 순이익</b>)</li>
-          <li>병목은 <b>최종 조립기</b> (6초) — 2~3개 두는 게 효율적</li>
-          <li>동력원은 한 사이클에 <b>2개</b> 필요 (스마트 + 최종) → 동력원 슬롯 우선 확장</li>
-          <li>중간 제품도 수거 가능 → 최종 라인 미완성이어도 손해 안 봄</li>
-        </ul>
-      </div>
-      
-      <div class="guide-section">
-        <h3>🔄 두 공장 병행 운영</h3>
-        <ul>
-          <li>보드 전환 안 해도 다른 공장은 계속 작동 — 백그라운드 자동화</li>
-          <li>MOF (안정적인 60원/개)와 나노 (대박 500원/개) 양쪽으로 자금원 분산</li>
-          <li>한쪽 라인 막혀도 다른 쪽이 돌아가 게임 진행 끊김 X</li>
-        </ul>
-      </div>
-    `
+    tips: ``
   };
   
   function getMachinesGuideHtml() {
@@ -8262,7 +8279,7 @@
         </ul>
       </div>
       <div class="guide-section">
-        <h3>🧪 솔보써멀 반응기</h3>
+        <h3>🧪 멀티클레이브</h3>
         <p class="formula">M(metal) + L(linker) → MOF (in DMF, 120°C, 24h)</p>
         <p><b>역할:</b> 금속염 + 유기 리간드 → 미세척 MOF 합성</p>
         <ul>
@@ -8280,7 +8297,7 @@
         </ul>
       </div>
       <div class="guide-section">
-        <h3>💧 원심분리 세척기</h3>
+        <h3>💧 진공 필터 장치</h3>
         <p class="formula">Centrifugal Wash (DMF × 3회)</p>
         <p><b>역할:</b> 결정 표면·포어 안의 불순물 제거 → 순도 향상</p>
         <ul>
@@ -8298,7 +8315,7 @@
         </ul>
       </div>
       <div class="guide-section">
-        <h3>🌡 진공 활성화로</h3>
+        <h3>🌡 진공 건조 오븐</h3>
         <p class="formula">Vacuum + 200°C, 12h</p>
         <p><b>역할:</b> 포어 안 솔벤트 제거 → 다공성 발현 → 최종 제품 완성</p>
         <ul>
