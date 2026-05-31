@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>공정 타이쿤 v43</title>
+<title>공정 타이쿤</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   body {
@@ -4847,8 +4847,11 @@
     if (activeInfoKey && document.getElementById('info-modal').classList.contains('show')) {
       renderProcessorModal();
     }
+    // inspect 모달은 매 프레임 전체 갱신하지 않음 (DOM 교체로 클릭 무효화 됨)
+    // 실시간 처리량/진행도만 부분 갱신
     if (activeInspectKey && document.getElementById('inspect-modal').classList.contains('show')) {
-      renderInspectModal();
+      updateInspectLiveStats();
+      updateInspectAffordability();
     }
     // 공급기 개수 라벨 가끔 갱신 (15프레임마다 - 성능)
     if (tickCounter % 15 === 0 && currentTool === 'spawner') {
@@ -6353,6 +6356,91 @@
     document.getElementById('inspect-modal').classList.add('show');
   }
   
+  // inspect 모달 부분 갱신 - 실시간 통계 영역만 갱신 (버튼 영역 X)
+  function updateInspectLiveStats() {
+    if (!activeInspectKey) return;
+    const key = activeInspectKey;
+    const cell = grid[key];
+    if (!cell) return;
+    
+    // 라이브 통계 갱신
+    const liveEl = document.getElementById('inspect-live-stats');
+    if (liveEl) {
+      const stats = cellStats[key];
+      if (stats) {
+        const sumLast5 = (arr) => {
+          let s = 0;
+          const cutoff = tickCounter - 300;
+          for (const r of arr) if (r.tick >= cutoff) s += 1;
+          return s;
+        };
+        const totalInputs = Object.values(stats.inputs || {}).reduce((a, b) => a + (b || 0), 0);
+        const totalOutputs = Object.values(stats.outputs || {}).reduce((a, b) => a + (b || 0), 0);
+        const inputsRecent = sumLast5(stats.inputsRecent || []);
+        const outputsRecent = sumLast5(stats.outputsRecent || []);
+        
+        let inputRows = '';
+        for (const k in (stats.inputs || {})) {
+          const it = itemTypes[k];
+          const label = (it && it.label) || k;
+          inputRows += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;"><span style="color:#ccc;">${label}</span><span style="color:#5DD89F;font-weight:600;">${stats.inputs[k]}</span></div>`;
+        }
+        let outputRows = '';
+        for (const k in (stats.outputs || {})) {
+          const it = itemTypes[k];
+          const label = (it && it.label) || k;
+          outputRows += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;"><span style="color:#ccc;">${label}</span><span style="color:#5DD89F;font-weight:600;">${stats.outputs[k]}</span></div>`;
+        }
+        
+        liveEl.innerHTML = `
+          <div class="inspect-section-title" style="color: #5DD89F;">⚡ 실시간 처리량</div>
+          ${(totalInputs > 0 || cell.type === 'processor' || cell.type === 'collector')
+            ? `<div class="inspect-section-title" style="margin-top:4px;">📥 입력 (최근 5초: ${inputsRecent})</div>${inputRows || '<div style="color:#888;font-size:12px;">—</div>'}` : ''}
+          ${(totalOutputs > 0 || cell.type === 'spawner' || cell.type === 'processor')
+            ? `<div class="inspect-section-title" style="margin-top:8px;">📤 출력 (최근 5초: ${outputsRecent})</div>${outputRows || '<div style="color:#888;font-size:12px;">—</div>'}` : ''}
+        `;
+      }
+    }
+    
+    // 처리장치 라이브 갱신 (버퍼/진행도)
+    const procEl = document.getElementById('inspect-processor-live');
+    if (procEl && cell.type === 'processor') {
+      const buffer = cell.buffer || {};
+      const inputs = cell.inputs || [];
+      let bufferRows = '';
+      for (const inp of inputs) {
+        const count = buffer[inp] || 0;
+        const label2 = (itemTypes[inp] && itemTypes[inp].label) || inp;
+        bufferRows += `<div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;"><span style="color:#ccc;">${label2} 버퍼</span><span style="color:#FFD700;font-weight:600;">${count}</span></div>`;
+      }
+      let statusText, statusColor;
+      const allReady = inputs.every(inp => (buffer[inp] || 0) >= 1);
+      if (cell.processing) {
+        const progress = Math.min(1, (tickCounter - cell.processStartTick) / cell.processTime);
+        statusText = `⚗ 처리 중 (${Math.round(progress * 100)}%)`;
+        statusColor = '#FF8030';
+      } else if (allReady) {
+        statusText = '⏳ 시작 대기'; statusColor = '#FFD700';
+      } else {
+        statusText = '💤 입력 대기'; statusColor = '#888';
+      }
+      let progressBar = '';
+      if (cell.processing) {
+        const progress = Math.min(1, (tickCounter - cell.processStartTick) / cell.processTime);
+        progressBar = `<div class="info-progress-wrap" style="margin-top:6px;"><div class="info-progress-fill" style="width:${progress * 100}%"></div></div>`;
+      }
+      procEl.innerHTML = `
+        <div class="inspect-section-title" style="color: #B080D0;">🔧 현재 상태</div>
+        ${bufferRows}
+        <div style="display:flex;justify-content:space-between;font-size:12px;padding:3px 0;margin-top:4px;border-top:1px solid #4a4a4e;padding-top:6px;">
+          <span style="color:#ccc;">상태</span>
+          <span style="color:${statusColor};font-weight:600;">${statusText}</span>
+        </div>
+        ${progressBar}
+      `;
+    }
+  }
+  
   function renderInspectModal() {
     if (!activeInspectKey) return;
     const key = activeInspectKey;
@@ -6426,7 +6514,7 @@
         : '';
       
       liveSection = `
-        <div class="inspect-section" style="background: #2a3525; border-color: #5a7045;">
+        <div id="inspect-live-stats" class="inspect-section" style="background: #2a3525; border-color: #5a7045;">
           <div class="inspect-section-title" style="color: #5DD89F;">⚡ 실시간 처리량</div>
           ${inputsHtml}
           ${outputsHtml}
@@ -6475,7 +6563,7 @@
       }
       
       processorLive = `
-        <div class="inspect-section" style="background: #2a2535; border-color: #5a4570;">
+        <div id="inspect-processor-live" class="inspect-section" style="background: #2a2535; border-color: #5a4570;">
           <div class="inspect-section-title" style="color: #B080D0;">🔧 현재 상태</div>
           ${bufferRows}
           <div style="display: flex; justify-content: space-between; font-size: 12px; padding: 3px 0; margin-top: 4px; border-top: 1px solid #4a4a4e; padding-top: 6px;">
